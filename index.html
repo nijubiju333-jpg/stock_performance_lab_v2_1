@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Stock Performance Lab</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <aside class="sidebar">
+    <div class="brand"><div class="brand-mark">S</div><div><b>SCREENLAB</b><small>MARKET ANALYTICS</small></div></div>
+    <div class="side-label">WORKSPACE</div>
+    <a class="nav active" href="#overview"><span>▦</span> Overview</a>
+    <a class="nav" href="#records"><span>▤</span> Screened stocks</a>
+    <a class="nav" href="#import"><span>＋</span> Bulk import</a>
+    <div class="sidebar-bottom"><div class="live-dot"></div><span>Local workspace</span><small>v0.1 · Prototype</small></div>
+  </aside>
+  <main class="main">
+    <header class="topbar"><div><div class="eyebrow">YOUR RESEARCH WORKSPACE</div><h1>Stock Performance <span>Lab</span></h1><p>Measure how your stock-screening ideas perform after they appear.</p></div><div class="top-actions"><button class="btn btn-ghost" onclick="refreshPrices()">↻ Refresh prices</button><a class="btn btn-primary" href="/api/export">↓ Export CSV</a></div></header>
+    <section id="overview" class="section">
+      <div class="section-head"><div><div class="eyebrow">PERFORMANCE OVERVIEW</div><h2>Strategy snapshot</h2></div><div class="updated" id="lastUpdated">Waiting for data</div></div>
+      <div class="metrics">
+        <article class="metric"><div class="metric-top"><span>Total screened</span><i class="metric-icon violet">▦</i></div><strong id="total">0</strong><small>All imported records</small></article>
+        <article class="metric"><div class="metric-top"><span>Target hit</span><i class="metric-icon green">↗</i></div><strong id="tp">0</strong><small class="positive" id="tpPct">0.00% of screened</small></article>
+        <article class="metric"><div class="metric-top"><span>Stop-loss hit</span><i class="metric-icon red">↘</i></div><strong id="sl">0</strong><small class="negative" id="slPct">0.00% of screened</small></article>
+        <article class="metric"><div class="metric-top"><span>Still running</span><i class="metric-icon blue">◷</i></div><strong id="running">0</strong><small id="pendingNote">0 awaiting price data</small></article>
+      </div>
+      <div class="analysis-grid">
+        <article class="panel chart-panel"><div class="panel-head"><div><h3>Outcome distribution</h3><p>TP, SL and running records</p></div><span class="pill">ALL RECORDS</span></div><div class="donut-wrap"><canvas id="outcomeChart"></canvas><div class="donut-center"><b id="winRate">0%</b><span>WIN RATE*</span></div></div><div class="legend"><span><i class="dot green-bg"></i>Target hit</span><span><i class="dot red-bg"></i>Stop-loss</span><span><i class="dot blue-bg"></i>Running</span><span><i class="dot" style="background:#d69b36"></i>Both hit</span></div><div class="footnote">*Win rate = TP ÷ (TP + SL), excluding running and pending records.</div></article>
+        <article class="panel rules-panel"><div class="panel-head"><div><h3>Current test rules</h3><p>Applied consistently to each imported stock</p></div><span class="pill pill-green">ACTIVE RULESET</span></div><div class="rule-row"><span>Entry reference</span><b>Screening-date closing price</b></div><div class="rule-row"><span>Take profit</span><b class="positive">+5.00%</b></div><div class="rule-row"><span>Stop-loss</span><b class="negative">−2.00%</b></div><div class="rule-row"><span>Observation window</span><b>15 trading days</b></div><div class="rule-row"><span>Trigger method</span><b>Intraday High / Low</b></div><div class="rule-note">Screening-date close sets the reference. From Day 1 through Day 15, daily High/Low determine whether TP/SL was touched. If both are touched on the same day, the result is BOTH (order unknown from daily candles).</div></article>
+      </div>
+    </section>
+    <section id="import" class="section import-section">
+      <div class="section-head"><div><div class="eyebrow">ADD YOUR SCREENER OUTPUT</div><h2>Bulk import stocks</h2><p>Paste stock symbols and screening dates. One stock per line; copy two columns directly from Excel or Google Sheets.</p></div></div>
+      <div class="panel import-panel"><div class="import-left"><label for="bulkInput">STOCK SYMBOL, SCREENING DATE</label><textarea id="bulkInput" placeholder="RELIANCE&#9;23-01-2026&#10;SBIN&#9;24-01-2026&#10;TCS&#9;27-01-2026"></textarea><div class="input-hint">Paste two columns (Symbol + Date), tab-separated, or use SYMBOL,DD-MM-YYYY · NSE symbols by default</div></div><div class="import-right"><div class="upload-icon">⇧</div><h3>Paste your screener list</h3><p>Duplicate symbol/date combinations are automatically skipped.</p><button class="btn btn-primary full" onclick="importStocks()">＋ Add screening records</button><div id="importMessage" class="message"></div></div></div>
+    </section>
+    <section id="records" class="section records-section">
+      <div class="section-head"><div><div class="eyebrow">YOUR TRACKING DATABASE</div><h2>Screened stocks <span class="count-badge" id="recordCount">0</span></h2><p>Review screening-date entry, 15-day prices and intraday target/stop touches.</p></div><div class="filters"><input id="searchInput" placeholder="Search symbol…" oninput="renderTable()"><select id="resultFilter" onchange="renderTable()"><option value="ALL">All results</option><option>TP</option><option>SL</option><option>RUNNING</option><option>BOTH</option><option>PENDING</option></select></div></div>
+      <div class="panel table-panel"><div class="table-scroll"><table><thead><tr><th>STOCK / DATE</th><th>ENTRY CLOSE</th><th>DAY 1 CLOSE</th><th>TARGET</th><th>STOP-LOSS</th><th>RESULT</th><th>HIT DAY</th><th>15-DAY TRACKING</th><th></th></tr></thead><tbody id="stockRows"><tr><td colspan="9" class="empty">No screening records yet. Paste your first list above to get started.</td></tr></tbody></table></div><div class="table-footer"><span id="tableFoot">0 records</span><span>Prices in ₹ · Daily OHLC high/low trigger checks</span></div></div>
+    </section>
+    <footer>SCREENLAB <span>·</span> Built for research and strategy evaluation. Not investment advice. <span class="footer-right">Data: Yahoo Finance via yfinance · Verify before relying on results.</span></footer>
+  </main>
+</div>
+<div id="detailBackdrop" class="modal-backdrop" onclick="if(event.target===this)closeDetails()"><div class="detail-modal"><div class="modal-head"><div><div class="eyebrow">SCREENING RECORD</div><h2 id="detailTitle">Stock details</h2></div><button class="modal-close" onclick="closeDetails()">×</button></div><div id="detailContent"></div></div></div>
+<div id="toast" class="toast"></div>
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body></html>
